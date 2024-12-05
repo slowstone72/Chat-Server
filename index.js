@@ -51,7 +51,8 @@ const defaultConfig = {
 			'send',
 			'read'
 		]
-	}
+	},
+	'badTextFile': 'badText.json'
 }
 
 const configFile = 'config.json';

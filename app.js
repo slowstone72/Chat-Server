@@ -376,8 +376,10 @@ const checkCapPercent = input => {
     return count / chars.length * 100;
 }
 
+// Set up badText:
+
 const unDiscreetanize = input => {
-    let key = ' abcdefghijklmnopqrstuvwyxy'.split('');
+    let key = ' abcdefghijklmnopqrstuvwyxz'.split('');
     input = input.split(' '); // break character
     let output = input;
     input.forEach((char, index)=> {
@@ -394,42 +396,17 @@ const undiscreetArray = input => {
     return output;
 }
 
-const badWords = undiscreetArray([ // incredible method of obscuring bad words - should be in a json/db
-    '6 21 3 11',
-    '2 9 20 3 8',
-    '14 9 7 7 5 18',
-    '14 9 7 7 1',
-    '3 21 14 20',
-    '1 19 19',
-    '3 15 3 11',
-    '4 9 3 11',
-    '4 9 12 4 15',
-    '23 1 14 11',
-    '1 19 19 8 15 12 5',
-    '16 21 19 19 25',
-    '22 1 7 9 14 1',
-    '16 5 14 9 19',
-    '20 9 20 19',
-    '6 1 7 7 15 20',
-    '16 15 18 14'
-]);
+let badText;
 
-/* const discreetanize = input => {
-    let key = " abcdefghijklmnopqrstuvwyxy".split("");
-    input = input.split("");
-    output = input;
-    input.forEach((char, index) => {
-        output[index] = key.includes(char) ? `${key.indexOf(char)}` : "?";
-        output[index] += " "; // break character between letters
-    });
-    return output.join(""); // .trim();
+try {
+	badText = JSON.parse(fs.readFileSync(config.badTextFile, 'utf-8'));
+} catch (err) {
+	console.log(`Error while loading ${config.badTextFile}.`);
+    process.exit();
+	/* fs.writeFileSync(configFile, JSON.stringify(defaultConfig), 'utf-8');
+	badText = JSON.parse(fs.readFileSync(config.badTextFile, 'utf-8')); */
 }
 
-const discreetArray = input => {
-    let output = input;
-    input.forEach((item, index) => {
-        output[index] = discreetanize(item);
-    });
-    return output;
-} */
+const badWords = undiscreetArray(badText.text);
+
 }
