@@ -2,7 +2,7 @@
     "Chat Server"
     app.js - Main program
 
-    Copyright 2024.07.23 - 2024.12.03 (©) Callum Fisher <cf.fisher.bham@gmail.com>
+    Copyright 2024.07.23 - 2024.12.05 (©) Callum Fisher <cf.fisher.bham@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -102,14 +102,14 @@ const forgeID = () => { // we can come up with a better way later
 
 const checkIPA = ipa => {
     let count = 0;
-    clients.forEach(client => (client.ipa == ipa && count ++));
+    clients.forEach(client => (client.ipa === ipa && count ++));
     return count;
 }
 
 const ipaBlocked = ipa => {
     let output = false;
     ipaStore.forEach(item => { // can probably replace with .filter or something
-        if (item.i == ipa) {
+        if (item.i === ipa) {
             if (item.b) output = true;
         }
     });
@@ -135,11 +135,11 @@ const sayBye = (client, code) => {
     clients.splice(clients.indexOf(client), 1);
     updateClients();
     // record the amount of kicks for this IPA:
-    if (code == "kick") {
+    if (code === "kick") {
         autoMod.chaos ++;
         let found = false;
         ipaStore.forEach(ipa => { // can be simplified also probably
-            if (ipa.i == client.ipa) {
+            if (ipa.i === client.ipa) {
                 ipaStore[ipaStore.indexOf(ipa)].k ++;
                 if (ipaStore[ipaStore.indexOf(ipa)].k >= ipaMaxKicks) {
                     ipaStore[ipaStore.indexOf(ipa)].b = Date.now();
@@ -291,7 +291,7 @@ io.on("connection", socket => {
                     }
             }
         }
-        if (msg.m == client.lastMessage && (now - lastActive < 2000)) return;
+        if (msg.m === client.lastMessage && (now - lastActive < 2000)) return;
 
         // create outgoing message:
         msg = {
@@ -341,9 +341,9 @@ if (autoMod.on) setInterval(() => {
     if (clientCeiling !== maxClients) autoMod.chaos += 2;
     // adjust chatFilterLevel:
     if (autoMod.chaos >= autoMod.chaosCap.chatFilterLevel) if (autoMod.chatFilterLevel !== 3) autoMod.chatFilterLevel ++;
-    if (autoMod.chaos == 0) if (autoMod.chatFilterLevel > 0) autoMod.chatFilterLevel --;
+    if (autoMod.chaos === 0) if (autoMod.chatFilterLevel > 0) autoMod.chatFilterLevel --;
     autoMod.kickForCap = autoMod.chaos > autoMod.chaosCap.kickForCap;
-    if (autoMod.chaos == 0) return;
+    if (autoMod.chaos === 0) return;
     autoMod.chaos --;
 }, 10000);
 
@@ -369,7 +369,7 @@ const filterText = input => {
     input = input.toLowerCase();
     input.split(" ").forEach(word => { // can still be bypassed with spaces but whatever
         badWords.forEach(badWord => {
-            if (word == badWord) {
+            if (word === badWord) {
                 input = input.replace(new RegExp(escapeRegExp(badWord), "g"), "#".repeat(badWord.length));
                 autoMod.chaos ++;
             }
@@ -416,7 +416,7 @@ const compareStrings = (str1, str2) => {
 const checkCapPercent = input => {
     let chars = input.split("");
     let count = 0;
-    chars.forEach(char => ((char.toUpperCase() == char) && (count ++)));
+    chars.forEach(char => ((char.toUpperCase() === char) && (count ++)));
     return count / chars.length * 100;
 }
 
