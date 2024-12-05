@@ -23,26 +23,60 @@ import express from 'express';
 import { createServer } from 'node:http';
 import fs from 'fs';
 
-/* fs.existsSync('config.json', exists => {
-    if (!exists) fs.writeFileS
-}); */
-
 export default function app () {
+
+// Load & define settings from config.json:
 
 const config = JSON.parse(fs.readFileSync('config.json', 'utf-8'));
 
-const port = process.env.PORT ?? config.port ?? 1234;
 const beVerbose = config.beVerbose ?? true;
-let maxMessageLength = 512;
-let maxChatHistory = 20;
+
+const port = process.env.PORT ?? config.port ?? 1234;
+
+const maxMessageLength = config.maxMessageLength ?? 512;
+const maxChatHistory = config.maxChatHistory ?? 20;
+const maxIdleTime = config.maxIdleTime ?? 60000;
+const pulseTime = config.pulseTime ?? 20000; // specifies when clients should send ping msgs, should probably go in the bin
+const clientCeiling = config.clientCeiling ?? 20; // max max clients
+const maxClientsPerIPA = config.maxClientsPerIPA ?? 2; // max clients per IP address
+
+const ipaMaxKicks = config.ipaMaxKicks ?? 4; // max kicks per IP address before blocking that IP
+const ipaBlockTime = config.ipaBlockTime ?? 200000;
+const ipaStoreTime = config.ipaStoreTime ?? 100000; // can be overriden for blocked IPAs
+
+// Define temp values:
+
+let autoMod = config.autoMod ?? {
+    on: true,
+    chaos: 0,
+    capCap: 80, // the max percentage cap of uppercase characters in a message
+    kickForCap: false,
+    chatFilterLevel: 2,
+    chatFilterTolerance: 75,
+    chaosCap: {
+        chatFilterLevel: 3,
+        kickForCap: 15
+    }
+}
+
+let maxClients = clientCeiling; // Dynamically adjustable client limit
+let clients = [];
+let lastNewClient = Date.now(); // for tracking abnormal connections
+
+let ipaStore = [
+    {
+        'i': '123.456.7.8', // ip address
+        't': Date.now(), // date stored
+        'b': 2000, // ban time
+        'k': 4 // amount of kicks on this ip
+    }
+];
+
 let chatHistory = [{
     't': Date.now(),
     'n': 'Server',
     'm': 'Hello, send a nice message :-)'
 }];
-
-
-if (beVerbose) console.log('beep boop, looks like I\'m on the air');
 
 const expressApp = express();
 const server = createServer(expressApp);
@@ -60,41 +94,6 @@ const io = new Server(server, {
 server.listen(port, () => {
     if (beVerbose) console.log(`server launched @ ${port}`);
 });
-
-let maxIdleTime = 60000;
-let pulseTime = 20000; // specifies when clients should send ping msgs, should probably go in the bin
-let lastNewClient = Date.now(); // for tracking abnormal connections
-let clientCeiling = 20; // max max clients
-let maxClientsPerIPA = 2; // max clients per IP address
-let maxClients = 20; // "max" clients
-let clients = [];
-
-let ipaMaxKicks = 4; // max kicks per IP address before blocking that IP
-let ipaBlockTime = 200000;
-let ipaStoreTime = 100000; // can be overriden for blocked IPAs
-let ipaStore = [
-    {
-        'i': '123.456.7.8', // ip address
-        't': Date.now(), // date stored
-        'b': 2000, // ban time
-        'k': 4 // amount of kicks on this ip
-    }
-]
-
-// configure automod:
-let autoMod = {
-    on: true,
-    chaos: 0,
-    capCap: 80, // the max percentage cap of uppercase characters in a message
-    kickForCap: false,
-    chatFilterLevel: 2,
-    chatFilterTolerance: 75
-}
-
-autoMod.chaosCap = {
-    chatFilterLevel: 3,
-    kickForCap: 15
-}
 
 const forgeID = () => { // we can come up with a better way later
     return Math.floor(Math.random() * 90000);

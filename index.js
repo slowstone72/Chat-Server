@@ -1,5 +1,5 @@
 /*
-	'Chat Server'
+	"Chat Server"
     index.js - Launcher
 
     Copyright 2024.09.01 - 2024.12.05 (©) Callum Fisher <cf.fisher.bham@gmail.com>
@@ -20,11 +20,10 @@
 
 import pkg from 'edit-json-file'; // 2024.12.03: To-do: get rid of edit-json-file
 const editjsonfile = pkg;
-import fs from 'fs';
+// import fs from 'fs';
 import app from './app.js';
-const moduleName = 'Launcher';
 
-console.log('Running.');
+console.log('Launcher running.');
 
 // Define default configuration: (config.json)
 
@@ -32,26 +31,36 @@ const validKeys = {
 	'firstTimeRun': true,
 	'verboseLogging': false,
 	'configReady': false,
-	'port': 1234
+	'port': 1234,
+	'maxMessageLength': 512,
+	'maxChatHistory': 20,
+	'maxIdleTime': 60000,
+	'pulseTime': 20000,
+	'clientCeiling': 20,
+	'maxClientsPerIPA': 2,
+	'autoMod': {
+		on: true,
+		chaos: 0,
+		capCap: 80, // the max percentage cap of uppercase characters in a message
+		kickForCap: false,
+		chatFilterLevel: 2,
+		chatFilterTolerance: 75,
+		chaosCap: {
+			chatFilterLevel: 3,
+			kickForCap: 15
+		}
+	} 
 }
 
 // Define valid directories:
 
-const validDirs = [
-	'logs',
-	'db',
-	'midi',
-	'midiBackup',
-	'midiToImport',
-	'cmds',
-	'items'
-];
+// const validDirs = [];
 
 let configChangeMade;
 
 // Create missing directories:
 
-validDirs.forEach(dir => {
+/* validDirs.forEach(dir => {
 	fs.exists(`./${dir}`, exists => {
 		if (!exists) {
 			fs.mkdir(`./${dir}`, err => {
@@ -64,7 +73,7 @@ validDirs.forEach(dir => {
 			});
 		}
 	});
-});
+}); */
 
 
 // Check config.json:
