@@ -25,7 +25,7 @@ console.log('Launcher running.');
 
 const defaultConfig = {
 	'firstTimeRun': true,
-	'verboseLogging': false,
+	'beVerbose': false,
 	'configReady': false,
 	'port': 1234,
 	'maxMessageLength': 512,
@@ -125,7 +125,7 @@ if (config.beVerbose) {
 
 console.log(`Configuration file integrity check completed. ${configChangeMade ? 'Recording changes now' : 'No changes made'}.`);
 
-if (!configChangeMade) fs.writeFileSync(configFile, JSON.stringify(config), 'utf-8');
+if (configChangeMade) fs.writeFileSync(configFile, JSON.stringify(config), 'utf-8');
 
 // Finally, launch the app:
 
