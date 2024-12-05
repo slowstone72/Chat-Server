@@ -123,16 +123,14 @@ if (config.beVerbose) {
 	});
 }
 
-if (configChangeMade) { // If changes have been made to the configuration file, record those changes: (there's no need to rewrite the file if no changes have been made)
-	console.log(`Configuration file integrity check completed. Recording changes now.`);
-	fs.writeFileSync(configFile, JSON.stringify(config), 'utf-8');
-} else {
-	console.log(`Configuration file integrity check completed. No changes made.`);
-}
+console.log(`Configuration file integrity check completed. ${configChangeMade ? 'Recording changes now' : 'No changes made'}.`);
 
-// Run the app:
+if (!configChangeMade) fs.writeFileSync(configFile, JSON.stringify(config), 'utf-8');
+
+// Finally, launch the app:
+
 if (config.configReady) {
 	app();
-} else {
+} else { // ...Or not. We still have some setup to do:
 	console.log(`[!!!] Please review the configuration in '${configFile}' and change 'configReady' to 'true' [!!!]`);
 }
