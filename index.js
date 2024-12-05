@@ -118,7 +118,7 @@ Object.keys(config).forEach(key => {
 
 if (config.beVerbose) {
 	console.log(`[${configFile}] Using the following options:`);
-	Object.keys(config).forEach(key => { // Print out the key values being used:
+	Object.keys(config).forEach(key => {
 		console.log(`[${configFile}] - ${key}: ${JSON.stringify(config[key])}`);
 	});
 }
