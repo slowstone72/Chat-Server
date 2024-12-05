@@ -1,8 +1,8 @@
 /*
-	"Chat Server"
+	'Chat Server'
     index.js - Launcher
 
-    Copyright 2024.09.01 - 2024.12.03 (©) Callum Fisher <cf.fisher.bham@gmail.com>
+    Copyright 2024.09.01 - 2024.12.05 (©) Callum Fisher <cf.fisher.bham@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,33 +18,33 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import pkg from "edit-json-file"; // 2024.12.03: To-do: get rid of edit-json-file
+import pkg from 'edit-json-file'; // 2024.12.03: To-do: get rid of edit-json-file
 const editjsonfile = pkg;
-import fs from "fs";
-import app from "./app.js";
-const moduleName = "Launcher";
+import fs from 'fs';
+import app from './app.js';
+const moduleName = 'Launcher';
 
-console.log("Running.");
+console.log('Running.');
 
 // Define default configuration: (config.json)
 
 const validKeys = {
-	"firstTimeRun": true,
-	"verboseLogging": false,
-	"configReady": false,
+	'firstTimeRun': true,
+	'verboseLogging': false,
+	'configReady': false,
 	'port': 1234
 }
 
 // Define valid directories:
 
 const validDirs = [
-	"logs",
-	"db",
-	"midi",
-	"midiBackup",
-	"midiToImport",
-	"cmds",
-	"items"
+	'logs',
+	'db',
+	'midi',
+	'midiBackup',
+	'midiToImport',
+	'cmds',
+	'items'
 ];
 
 let configChangeMade;
@@ -56,10 +56,10 @@ validDirs.forEach(dir => {
 		if (!exists) {
 			fs.mkdir(`./${dir}`, err => {
 				if (err) {
-					console.log(`ERROR: Failed to create directory "${dir}"!`, err);
+					console.log(`ERROR: Failed to create directory '${dir}'!`, err);
 					process.exit();
 				} else {
-					console.log(`Created directory: "${dir}"`);
+					console.log(`Created directory: '${dir}'`);
 				}
 			});
 		}
@@ -71,16 +71,16 @@ validDirs.forEach(dir => {
 
 console.log(`Checking configuration file integrity...`);
 
-const config = editjsonfile("./config.json");
+const config = editjsonfile('./config.json');
 
 configChangeMade = false;
 
 if (config.data.firstTimeRun == undefined) {
 	configChangeMade = true;
-	config.set("firstTimeRun", true);
+	config.set('firstTimeRun', true);
 } else if (config.data.firstTimeRun) {
 	configChangeMade = true;
-	config.set("firstTimeRun", false);
+	config.set('firstTimeRun', false);
 }
 
 // Add missing keys:
@@ -88,7 +88,7 @@ if (config.data.firstTimeRun == undefined) {
 Object.keys(validKeys).forEach(key => {
 	if (!Object.keys(config.data).includes(key)) {
 		configChangeMade = true;
-		console.log(`[config.json] Adding missing key "${key}" with value: ${JSON.stringify(validKeys[key])}`);
+		console.log(`[config.json] Adding missing key '${key}' with value: ${JSON.stringify(validKeys[key])}`);
 		config.set(key, validKeys[key]);
 	}
 });
@@ -98,7 +98,7 @@ Object.keys(validKeys).forEach(key => {
 Object.keys(config.data).forEach(key => {
 	if (!Object.keys(validKeys).includes(key)) {
 		configChangeMade = true;
-		console.log(`[config.json] Removing unknown key "${key}"`);
+		console.log(`[config.json] Removing unknown key '${key}'`);
 		delete config.data[key];
 	}
 });
@@ -118,8 +118,8 @@ if (configChangeMade) { // If changes have been made to the configuration file, 
 }
 
 // Run the app:
-if (config.get("configReady")) {
+if (config.get('configReady')) {
 	app();
 } else {
-	console.log(`[!!!] Please review the configuration in "config.json" and change "configReady" to "true" [!!!]`);
+	console.log("[!!!] Please review the configuration in 'config.json' and change 'configReady' to 'true' [!!!]");
 }

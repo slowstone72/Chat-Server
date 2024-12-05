@@ -18,9 +18,9 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Server } from "socket.io"; // breaking news: socket.io is very inefficient for this purpose and needs to go in the bin
-import express from "express";
-import { createServer } from "node:http";
+import { Server } from 'socket.io'; // breaking news: socket.io is very inefficient for this purpose and needs to go in the bin
+import express from 'express';
+import { createServer } from 'node:http';
 import fs from 'fs';
 
 /* fs.existsSync('config.json', exists => {
@@ -36,19 +36,19 @@ const beVerbose = config.beVerbose ?? true;
 let maxMessageLength = 512;
 let maxChatHistory = 20;
 let chatHistory = [{
-    "t": Date.now(),
-    "n": "Server",
-    "m": "Hello, send a nice message :-)"
+    't': Date.now(),
+    'n': 'Server',
+    'm': 'Hello, send a nice message :-)'
 }];
 
 
-if (beVerbose) console.log("beep boop, looks like I'm on the air");
+if (beVerbose) console.log('beep boop, looks like I\'m on the air');
 
 const expressApp = express();
 const server = createServer(expressApp);
 const io = new Server(server, {
     cors: {
-        origin: "*"
+        origin: '*'
     }
 });
 
@@ -74,10 +74,10 @@ let ipaBlockTime = 200000;
 let ipaStoreTime = 100000; // can be overriden for blocked IPAs
 let ipaStore = [
     {
-        "i": "123.456.7.8", // ip address
-        "t": Date.now(), // date stored
-        "b": 2000, // ban time
-        "k": 4 // amount of kicks on this ip
+        'i': '123.456.7.8', // ip address
+        't': Date.now(), // date stored
+        'b': 2000, // ban time
+        'k': 4 // amount of kicks on this ip
     }
 ]
 
@@ -124,18 +124,18 @@ const updateClients = () => {
             n: client.name
         });
     });
-    io.emit("max", maxClients);
-    io.emit("clients", filteredClients);
+    io.emit('max', maxClients);
+    io.emit('clients', filteredClients);
 }
 
 const sayBye = (client, code) => {
-    if (!code) code = "kick";
-    client.socket.emit("bye", code);
+    if (!code) code = 'kick';
+    client.socket.emit('bye', code);
     client.socket.disconnect();
     clients.splice(clients.indexOf(client), 1);
     updateClients();
     // record the amount of kicks for this IPA:
-    if (code === "kick") {
+    if (code === 'kick') {
         autoMod.chaos ++;
         let found = false;
         ipaStore.forEach(ipa => { // can be simplified also probably
@@ -156,14 +156,14 @@ const sayBye = (client, code) => {
     }
 }
 
-io.on("connection", socket => {
+io.on('connection', socket => {
     let ipa = socket.handshake.address;
     if (ipaBlocked(ipa)) {
         socket.disconnect(); // right?
         return;
     }
     if (checkIPA(ipa) >= maxClientsPerIPA) {
-        socket.emit("bye", "busy");
+        socket.emit('bye', 'busy');
         socket.disconnect();
         return;
     }
@@ -173,7 +173,7 @@ io.on("connection", socket => {
         lastNewClient = now;
     }
     if (clients.length + 1 > maxClients) {
-        socket.emit("bye", "busy");
+        socket.emit('bye', 'busy');
         socket.disconnect();
         return;
     }
@@ -189,20 +189,20 @@ io.on("connection", socket => {
     clients.push(client);
     if (beVerbose) console.log(`connect #${client.id}`);
     updateClients();
-    socket.emit("chistory", chatHistory);
-    socket.on("chistory", () => {
-        socket.emit("chistory", chatHistory);
+    socket.emit('chistory', chatHistory);
+    socket.on('chistory', () => {
+        socket.emit('chistory', chatHistory);
     });
-    socket.emit("p", pulseTime);
-    socket.on("disconnect", () => {
+    socket.emit('p', pulseTime);
+    socket.on('disconnect', () => {
         if (beVerbose) console.log(`disconnect #${client.id}`);
         // disabled for now due to removing wrong/too many clients - relying on "pulseTime" timeout for now:
         /* clients.splice(clients.indexOf(client), 1);
         updateClients(); */
     });
     socket.on("msg", msg => {
-        if (typeof msg !== "object" || typeof msg.m !== "string" || msg.m.length > maxMessageLength) {
-            sayBye(client, "kick");
+        if (typeof msg !== 'object' || typeof msg.m !== 'string' || msg.m.length > maxMessageLength) {
+            sayBye(client, 'kick');
             return;
         }
 
@@ -221,8 +221,8 @@ io.on("connection", socket => {
         if (autoMod.on) {
             let stripped = stripToLetters(msg.m);
             if (autoMod.capCap > 0) if (checkCapPercent(stripped) >= autoMod.capCap) {
-                socket.emit("msg", { t: Date.now(), n: "Bob", m: "please don't shout" });
-                if (autoMod.kickForCap) sayBye(client, "kick");
+                socket.emit('msg', { t: Date.now(), n: 'Bob', m: 'please don\'t shout' });
+                if (autoMod.kickForCap) sayBye(client, 'kick');
                 return;
             }
 
@@ -285,8 +285,8 @@ io.on("connection", socket => {
                     break;
                 case 3:
                     if (isBad(msg.m, autoMod.chatFilterTolerance)) {
-                        socket.emit("msg", { t: now, n: "Bob", m: "please be respectful and take care not to spam" });
-                        sayBye(client, "kick");
+                        socket.emit('msg', { t: now, n: 'Bob', m: 'please be respectful and take care not to spam' });
+                        sayBye(client, 'kick');
                         return;
                     }
             }
@@ -315,13 +315,13 @@ setInterval(() => {
         // check pulse:
         if (Date.now() - client.lastPulse > (pulseTime + 5000)) {
             if (beVerbose) console.log(`disconnect #${client.id} (nopulse)`);
-            sayBye(client, "nopulse");
+            sayBye(client, 'nopulse');
             return;
         }
         // check user activity:
         if (Date.now() - client.lastActive > maxIdleTime) {
             if (beVerbose) console.log(`disconnect #${client.id} (idle)`);
-            sayBye(client, "idle");
+            sayBye(client, 'idle');
         }
     });
     // check ipaStore, can probably be simplified:
@@ -351,7 +351,7 @@ const isBad = (input, tolerance) => {
     if (!tolerance) tolerance = 50;
     input = input.toLowerCase();
     let result = false;
-    input.split(" ").forEach(word => { // can still be bypassed with spaces but whatever
+    input.split(' ').forEach(word => { // can still be bypassed with spaces but whatever
         badWords.forEach(badWord => {
             if (word.length >= badWord.length && compareStrings(badWord, stripToLetters(word)) >= tolerance) result = true;
         });
@@ -370,7 +370,7 @@ const filterText = input => {
     input.split(" ").forEach(word => { // can still be bypassed with spaces but whatever
         badWords.forEach(badWord => {
             if (word === badWord) {
-                input = input.replace(new RegExp(escapeRegExp(badWord), "g"), "#".repeat(badWord.length));
+                input = input.replace(new RegExp(escapeRegExp(badWord), 'g'), '#'.repeat(badWord.length));
                 autoMod.chaos ++;
             }
         });
@@ -383,7 +383,7 @@ const filterTextIntense = input => {
     let strippedInput = stripToLetters(input);
     badWords.forEach(badWord => {
         if (strippedInput.includes(badWord)) {
-            input = input.replace(new RegExp(escapeRegExp(badWord), "g"), "#".repeat(badWord.length));
+            input = input.replace(new RegExp(escapeRegExp(badWord), 'g'), '#'.repeat(badWord.length));
             autoMod.chaos ++;
         }
     });
@@ -395,12 +395,12 @@ const escapeRegExp = input => {
 }
 
 const stripToLetters = input => {
-    let validChars = "abcdefghijklmnopqrstuvwyxyz".split("");
-    input = input.split("");
+    let validChars = 'abcdefghijklmnopqrstuvwyxyz'.split('');
+    input = input.split('');
     input.forEach((char, index) => {
         if (!validChars.includes(char.toLowerCase())) delete input[index];
     });
-    return input.join("");
+    return input.join('');
 }
 
 const compareStrings = (str1, str2) => {
@@ -408,26 +408,26 @@ const compareStrings = (str1, str2) => {
     let longest = str2.length < str1.length ? str1 : str2;
     let matches = 0;
 
-    shortest.split("").forEach((item, index) => ((item === longest[index]) && (matches ++)));
+    shortest.split('').forEach((item, index) => ((item === longest[index]) && (matches ++)));
     
     return matches / shortest.length * 100;
 }
 
 const checkCapPercent = input => {
-    let chars = input.split("");
+    let chars = input.split('');
     let count = 0;
     chars.forEach(char => ((char.toUpperCase() === char) && (count ++)));
     return count / chars.length * 100;
 }
 
 const unDiscreetanize = input => {
-    let key = " abcdefghijklmnopqrstuvwyxy".split("");
-    input = input.split(" "); // break character
+    let key = ' abcdefghijklmnopqrstuvwyxy'.split('');
+    input = input.split(' '); // break character
     let output = input;
     input.forEach((char, index)=> {
-        output[index] = key[Number(char)] || "?";
+        output[index] = key[Number(char)] || '?';
     });
-    return output.join("");
+    return output.join('');
 }
 
 const undiscreetArray = input => {
@@ -439,23 +439,23 @@ const undiscreetArray = input => {
 }
 
 const badWords = undiscreetArray([ // incredible method of obscuring bad words - should be in a json/db
-    "6 21 3 11",
-    "2 9 20 3 8",
-    "14 9 7 7 5 18",
-    "14 9 7 7 1",
-    "3 21 14 20",
-    "1 19 19",
-    "3 15 3 11",
-    "4 9 3 11",
-    "4 9 12 4 15",
-    "23 1 14 11",
-    "1 19 19 8 15 12 5",
-    "16 21 19 19 25",
-    "22 1 7 9 14 1",
-    "16 5 14 9 19",
-    "20 9 20 19",
-    "6 1 7 7 15 20",
-    "16 15 18 14"
+    '6 21 3 11',
+    '2 9 20 3 8',
+    '14 9 7 7 5 18',
+    '14 9 7 7 1',
+    '3 21 14 20',
+    '1 19 19',
+    '3 15 3 11',
+    '4 9 3 11',
+    '4 9 12 4 15',
+    '23 1 14 11',
+    '1 19 19 8 15 12 5',
+    '16 21 19 19 25',
+    '22 1 7 9 14 1',
+    '16 5 14 9 19',
+    '20 9 20 19',
+    '6 1 7 7 15 20',
+    '16 15 18 14'
 ]);
 
 /* const discreetanize = input => {
