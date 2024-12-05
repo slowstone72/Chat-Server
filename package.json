@@ -10,7 +10,6 @@
   "author": "Callum Fisher <cf.fisher.bham@gmail.com>",
   "license": "GPL-3.0",
   "dependencies": {
-    "edit-json-file": "^1.8.0",
     "express": "^4.21.1",
     "socket.io": "^4.8.1"
   }

@@ -2,7 +2,7 @@
     "Chat Server"
     app.js - Main program
 
-    Copyright 2024.07.23 - 2024.12.05 (©) Callum Fisher <cf.fisher.bham@gmail.com>
+    Copyright (©) 2024.07.23 - 2024.12.05 Callum Fisher <cf.fisher.bham@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
