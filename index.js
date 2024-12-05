@@ -37,7 +37,7 @@ const defaultConfig = {
 	'autoMod': {
 		on: true,
 		chaos: 0,
-		capCap: 80, // the max percentage cap of uppercase characters in a message
+		capCap: 80, // Percentage of uppercase characters allowed in a message
 		kickForCap: false,
 		chatFilterLevel: 2,
 		chatFilterTolerance: 75,
@@ -45,7 +45,13 @@ const defaultConfig = {
 			chatFilterLevel: 3,
 			kickForCap: 15
 		}
-	} 
+	},
+	'defaultPerms': { // Define default permissions for new users:
+		'chat': [
+			'send',
+			'read'
+		]
+	}
 }
 
 const configFile = 'config.json';
