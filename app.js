@@ -228,50 +228,7 @@ io.on('connection', socket => {
             filterTest(msg.m);
 
             /* filterTest is called here for updating the autoMod 'chaos level',
-            which controls how autoMod adjusts the chatFilterLevel alongside other restrictions.
-            
-            In theory, this means we can let users say whatever the badWords array says is bad,
-            until they start to get a little too crazy. At that point we can start gradually increasing
-            the chatFilterLevel until it becomes very strict.
-            
-            Here's an explanation of how the levels work for now:
-            
-            Level 1: badWord becomes #######
-
-            Level 2:
-            - evenAgoodWordThatIncludesAbadWord becomes #################################
-            - Cocktail becomes ########
-            
-            Level 3:
-            - Similar words to bad words are filtered, so even budWord is treated as a badWord.
-            - Messages don't send if filtered, and user is kicked.
-            This will likely prevent words with letter swaps from bypassing the filter.
-            - Anything shorter than the actual word that might still be similar is ignored.
-            This is in regards to any acronyms that might be falsely picked up by this filter.
-            
-            Conclusion:
-
-            The 'dynamic' element of a fluctuating chat filter level could be useful.
-            It might be a nice compromise between free speech and blasting the chat box
-            with something unfavourable for 24 hours.
-
-            On the other hand it could end the world, I don't know. Either way,
-            it's worth noting that this only really applies to English text anyway.
-
-            autoMod is mainly intended to prevent people/bots from massively spamming the server 24/7
-            by shrinking the boundaries the more they are pushed, and then expanding them once things calm down.
-
-            So, yes, you can spam "poppycock" repeatedly, within certain conditions:
-            - you aren't sending it too quickly
-            - the autoMod chaos level isn't such that the server becomes super strict
-
-            The chaos level is influenced by:
-            - messages containing bad words
-            - messages sent too quickly
-            - abnormal amounts of new clients
-            - the amount of clients the server has kicked
-
-            Anything beyond that is out of the question for now. */
+            which controls how autoMod adjusts the chatFilterLevel alongside other restrictions. */
 
             let chatFilterLevel = client.chatFilterLevel || autoMod.chatFilterLevel;
             // client.chatFilterLevel: in the future the server could set filter levels per client to offset abuse per user without punishing everybody
