@@ -25,7 +25,7 @@ console.log('Launcher running.');
 
 const defaultConfig = {
 	'firstTimeRun': true,
-	'beVerbose': false,
+	'beVerbose': true,
 	'configReady': true,
 	'port': 1234,
 	'maxMessageLength': 512,
@@ -36,7 +36,7 @@ const defaultConfig = {
 	'maxClientsPerIPA': 2,
 	'autoModWhenNoMods': true,
 	'autoMod': {
-		on: true,
+		on: false,
 		chaos: 0,
 		capCap: 80, // Percentage of uppercase characters allowed in a message
 		kickForCap: false,
