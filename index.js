@@ -2,7 +2,7 @@
 	"Chat Server"
     index.js - Launcher
 
-    Copyright (©) 2024.09.01 - 2024.12.05 Callum Fisher <cf.fisher.bham@gmail.com>
+    Copyright (©) 2024.09.01 - 2024.12.06 Callum Fisher <cf.fisher.bham@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@ console.log('Launcher running.');
 const defaultConfig = {
 	'firstTimeRun': true,
 	'beVerbose': false,
-	'configReady': false,
+	'configReady': true,
 	'port': 1234,
 	'maxMessageLength': 512,
 	'maxChatHistory': 20,
@@ -34,6 +34,7 @@ const defaultConfig = {
 	'pulseTime': 20000,
 	'clientCeiling': 20,
 	'maxClientsPerIPA': 2,
+	'autoModWhenNoMods': true,
 	'autoMod': {
 		on: true,
 		chaos: 0,
