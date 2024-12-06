@@ -273,7 +273,7 @@ const io = new Server(server, {
     }
 });
 
-app.get('/', (req, res) => {
+expressApp.get('/', (req, res) => {
     res.send('<u>hello, i\'m on the internet</u>');
     // 301 perm, 302 temp
 });
