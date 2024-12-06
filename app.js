@@ -273,10 +273,10 @@ const io = new Server(server, {
     }
 });
 
-/* app.get('/', (req, res) => {
-    res.send("<u>hello, looks like i'm internetting</u>");
+app.get('/', (req, res) => {
+    res.send('<u>hello, i\'m on the internet</u>');
     // 301 perm, 302 temp
-}); */
+});
 
 server.listen(port, () => {
     console.log(`server launched @ ${port}`);
