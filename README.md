@@ -1,5 +1,5 @@
 # Chat-Server
-A Node.js chat server created to explore some possibilities.
+A Node.js chat server created to explore what's possible.
 
 ## Moderation
 This server features an attempt at auto moderation aptly called autoMod. It makes use of a 'chaos level' integer, which is used to influence how strict the server's chat message filter is.
