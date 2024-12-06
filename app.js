@@ -2,7 +2,7 @@
     "Chat Server"
     app.js - Main program
 
-    Copyright (©) 2024.07.23 - 2024.12.05 Callum Fisher <cf.fisher.bham@gmail.com>
+    Copyright (©) 2024.07.23 - 2024.12.06 Callum Fisher <cf.fisher.bham@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -46,22 +46,9 @@ const ipaStoreTime = config.ipaStoreTime ?? 100000; // can be overriden for bloc
 
 // Define temp values:
 
-let autoMod = config.autoMod ?? {
-    on: true,
-    chaos: 0,
-    capCap: 80, // the max percentage cap of uppercase characters in a message
-    kickForCap: false,
-    chatFilterLevel: 2,
-    chatFilterTolerance: 75,
-    chaosCap: {
-        chatFilterLevel: 3,
-        kickForCap: 15
-    }
-}
-
 let maxClients = clientCeiling; // Dynamically adjustable client limit
 let clients = [];
-let lastNewClient = Date.now(); // for tracking abnormal connections
+let lastNewClient = Date.now(); // For tracking abnormal connections
 
 let ipaStore = [
     {
@@ -78,6 +65,206 @@ let chatHistory = [{
     'm': 'Hello, send a nice message :-)'
 }];
 
+// Define autoMod settings:
+
+// let autoModWhenNoMods = config.autoModWhenNoMods ?? true;
+
+let autoModConfig = config.autoMod ?? {
+    on: true,
+    chaos: 0,
+    capCap: 80, // the max percentage cap of uppercase characters in a message
+    kickForCap: false,
+    chatFilterLevel: 2,
+    chatFilterTolerance: 75,
+    chaosCap: {
+        chatFilterLevel: 3,
+        kickForCap: 15
+    }
+}
+
+// Load & define badText for autoMod:
+
+const unDiscreetanize = input => {
+    let key = ' abcdefghijklmnopqrstuvwyxz'.split('');
+    input = input.split(' '); // break character
+    let output = input;
+    input.forEach((char, index) => {
+        output[index] = key[Number(char)] || '?';
+    });
+    return output.join('');
+}
+
+const undiscreetArray = input => {
+    let output = input;
+    input.forEach((item, index) => {
+        output[index] = unDiscreetanize(item);
+    });
+    return output;
+}
+
+let badText;
+
+try {
+    badText = JSON.parse(fs.readFileSync(config.badTextFile, 'utf-8'));
+} catch (err) {
+    console.log(`Error while loading ${config.badTextFile}.`);
+    process.exit();
+	/* fs.writeFileSync(configFile, JSON.stringify(defaultConfig), 'utf-8');
+	badText = JSON.parse(fs.readFileSync(config.badTextFile, 'utf-8')); */
+}
+
+const badWords = undiscreetArray(badText.text);
+
+// Define autoMod functions:
+
+const escapeRegExp = input => {
+    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
+}
+
+const stripToLetters = input => {
+    let validChars = 'abcdefghijklmnopqrstuvwyxyz'.split('');
+    input = input.split('');
+    input.forEach((char, index) => {
+        if (!validChars.includes(char.toLowerCase())) delete input[index];
+    });
+    return input.join('');
+}
+
+const compareStrings = (str1, str2) => {
+    let shortest = str2.length >= str1.length ? str1 : str2;
+    let longest = str2.length < str1.length ? str1 : str2;
+    let matches = 0;
+
+    shortest.split('').forEach((item, index) => ((item === longest[index]) && (matches ++)));
+    
+    return matches / shortest.length * 100;
+}
+
+const checkCapPercent = input => {
+    let chars = input.split('');
+    let count = 0;
+    chars.forEach(char => ((char.toUpperCase() === char) && (count ++)));
+    return count / chars.length * 100;
+}
+
+const isBadText = (input, tolerance) => {
+    if (!tolerance) tolerance = 50;
+    input = input.toLowerCase();
+    let result = false;
+    input.split(' ').forEach(word => { // Can still be bypassed with spaces but whatever
+        badWords.forEach(badWord => {
+            if (word.length >= badWord.length && compareStrings(badWord, stripToLetters(word)) >= tolerance) result = true;
+        });
+    });
+    return result;
+}
+
+const filterTest = input => {
+    input = input.toLowerCase();
+    let strippedInput = stripToLetters(input);
+    badWords.forEach(badWord => {
+        if (strippedInput.includes(badWord)) return true;
+    });
+    return false;
+}
+
+const filterText = input => {
+    input = input.toLowerCase();
+    input.split(' ').forEach(word => { // Can still be bypassed with spaces but whatever
+        badWords.forEach(badWord => {
+            if (word === badWord) {
+                input = input.replace(new RegExp(escapeRegExp(badWord), 'g'), '#'.repeat(badWord.length));
+                autoModConfig.chaos ++;
+            }
+        });
+    });
+    return input;
+}
+
+const filterTextIntense = input => {
+    input = input.toLowerCase();
+    let strippedInput = stripToLetters(input);
+    badWords.forEach(badWord => {
+        if (strippedInput.includes(badWord)) {
+            input = input.replace(new RegExp(escapeRegExp(badWord), 'g'), '#'.repeat(badWord.length));
+            autoModConfig.chaos ++;
+        }
+    });
+    return input;
+}
+
+const autoMod = input => {
+
+    if (typeof input !== 'object') throw 'SyntaxError: autoMod() only accepts input type "object"';
+    if (!input.a) return;
+
+    switch (input.a) { // Check action:
+
+        case 'chatMsg':
+
+            let now = Date.now();
+            let client = input.client;
+            let msg = input.msg;
+
+            // Was this message sent less than 1 second after the last one?
+
+            if (now - client.lastActive < 1000) autoModConfig.chaos ++; // Yes, increase the chaos level
+
+            // Does this message contain anything from badText?
+
+            if (filterTest(msg.m)) autoModConfig.chaos ++; // Yes, increase the chaos level
+
+            // Strip the message down to its letters:
+
+            let strippedMessage = stripToLetters(msg.m);
+
+            // Does this message contain excessive UPPERCASE letters?
+
+            if (autoModConfig.capCap !== 0 && checkCapPercent(strippedMessage) >= autoModConfig.capCap) {
+
+                // Yes, warn the user:
+
+                socket.emit('msg', { t: now, n: 'Downstairs Dave', id: 'server', m: 'please don\'t shout' });
+
+                // Optionally, kick the user:
+
+                if (autoModConfig.kickForCap) {
+
+                    sayBye(client, 'kick');
+
+                    return false; // Tell the message handler to not send the message
+
+                }
+
+            }
+            
+            // Fetch the relevant chat filter level:
+
+            let chatFilterLevel = /* client.chatFilterLevel || */ autoModConfig.chatFilterLevel;
+            // client.chatFilterLevel: in the future the server could set filter levels per client to offset abuse per user without punishing everybody
+
+            // Filter the message according to the chat filter level:
+
+            switch (chatFilterLevel) {
+                case 1:
+                    return filterText(msg.m); // Words between spaces
+                case 2:
+                    return filterTextIntense(msg.m); // Words ignoring spaces
+                case 3:
+                    if (isBadText(msg.m, autoModConfig.chatFilterTolerance)) { // Similar words
+                        socket.emit('msg', { t: now, n: 'Bob', id: 'server', m: 'please be respectful and take care not to spam' });
+                        sayBye(client, 'kick');
+                        return false;
+                    }
+                    break;
+            }
+            break;
+    }
+
+}
+
+// Set up server:
+
 const expressApp = express();
 const server = createServer(expressApp);
 const io = new Server(server, {
@@ -86,14 +273,147 @@ const io = new Server(server, {
     }
 });
 
-/* app.get("/", (req, res) => {
+/* app.get('/', (req, res) => {
     res.send("<u>hello, looks like i'm internetting</u>");
     // 301 perm, 302 temp
 }); */
 
 server.listen(port, () => {
-    if (beVerbose) console.log(`server launched @ ${port}`);
+    console.log(`server launched @ ${port}`);
 });
+
+// Handle new connection:
+
+io.on('connection', socket => {
+
+    let ipa = socket.handshake.address; // Fetch IP address of this client
+
+    // Is this IP address blocked?
+
+    if (ipaBlocked(ipa)) {
+        socket.disconnect();
+        return;
+    }
+
+    // Is this IP address at the max amount of clients?
+
+    if (checkIPA(ipa) >= maxClientsPerIPA) {
+        socket.emit('bye', 'busy');
+        socket.disconnect();
+        return;
+    }
+
+    // Register connection attempt with autoMod:
+
+    let now = Date.now();
+
+    if (autoModConfig.on) { // 2024.12.05 TO-DO: Add config options for this & maybe move it elsewhere.
+        if (now - lastNewClient < 50 && maxClients > 3) maxClients -= 3;
+        lastNewClient = now;
+    }
+
+    // Is the server full?
+
+    if (clients.length + 1 > maxClients) {
+        socket.emit('bye', 'busy');
+        socket.disconnect();
+        return;
+    }
+
+    // Define info for this client:
+
+    let client = {
+        socket: socket,
+        id: forgeID(),
+        lastPulse: now,
+        lastActive: now,
+        lastMessage: '',
+        ipa: ipa
+    }
+
+    client.name = `Guest${client.id}`;
+
+    clients.push(client); // Add this to the active client list
+
+    if (beVerbose) console.log(`connect #${client.id}`);
+
+    updateClients(); // Introduce this client to everybody else
+
+    // Send recent chat history to this client:
+
+    socket.emit('chistory', chatHistory);
+    socket.on('chistory', () => {
+        socket.emit('chistory', chatHistory);
+    });
+
+    socket.emit('p', pulseTime);
+
+    socket.on('disconnect', () => {
+        if (beVerbose) console.log(`disconnect #${client.id}`);
+        // disabled for now due to removing wrong/too many clients - relying on "pulseTime" timeout for now:
+        /* clients.splice(clients.indexOf(client), 1);
+        updateClients(); */
+    });
+
+    socket.on('msg', msg => {
+
+        // Is this a valid message type?
+
+        if (typeof msg !== 'object' || typeof msg.m !== 'string' || msg.m.length > maxMessageLength) {
+            sayBye(client, 'kick');
+            return;
+        }
+
+        // Update client's lastActive:
+
+        let lastActive = client.lastActive;
+
+        client.lastActive = Date.now();
+
+        // Filtering & moderation:
+
+        msg.m = msg.m.replace(/</g,'&lt;').replace(/>/g,'&gt;'); // Prevent html injection
+
+        if (autoModConfig.on) {
+            let autoModOut = autoMod({ // Pass info to autoMod:
+                a: 'chatMsg',
+                client: client,
+                msg: msg
+            });
+            if (autoModOut) {
+                msg.m = autoModOut;
+            } else {
+                return;
+            }
+        }
+
+        // Is this message the same as the client's last?
+        // Is this message being sent less than two seconds after the last one?
+
+        if (msg.m === client.lastMessage && (now - lastActive < 2000)) return;
+
+        // Create outgoing message:
+
+        msg = {
+            t: now,
+            n: client.name,
+            m: msg.m
+        };
+
+        // Send:
+
+        io.emit("msg", msg);
+
+        // Update chat history:
+
+        chatHistory.push(msg);
+        if (chatHistory.length > maxChatHistory) chatHistory.splice(0, 1)[0];
+        client.lastMessage = msg.m;
+
+    });
+});
+
+// Define general functions:
 
 const forgeID = () => { // we can come up with a better way later
     return Math.floor(Math.random() * 90000);
@@ -135,7 +455,7 @@ const sayBye = (client, code) => {
     updateClients();
     // record the amount of kicks for this IPA:
     if (code === 'kick') {
-        autoMod.chaos ++;
+        autoModConfig.chaos ++;
         let found = false;
         ipaStore.forEach(ipa => { // can be simplified also probably
             if (ipa.i === client.ipa) {
@@ -154,117 +474,6 @@ const sayBye = (client, code) => {
         });
     }
 }
-
-io.on('connection', socket => {
-    let ipa = socket.handshake.address;
-    if (ipaBlocked(ipa)) {
-        socket.disconnect(); // right?
-        return;
-    }
-    if (checkIPA(ipa) >= maxClientsPerIPA) {
-        socket.emit('bye', 'busy');
-        socket.disconnect();
-        return;
-    }
-    let now = Date.now();
-    if (autoMod.on) {
-        if (now - lastNewClient < 50 && maxClients > 3) maxClients -= 3;
-        lastNewClient = now;
-    }
-    if (clients.length + 1 > maxClients) {
-        socket.emit('bye', 'busy');
-        socket.disconnect();
-        return;
-    }
-    let client = {
-        socket: socket,
-        id: forgeID(),
-        lastPulse: now,
-        lastActive: now,
-        lastMessage: '',
-        ipa: ipa
-    }
-    client.name = `Guest${client.id}`;
-    clients.push(client);
-    if (beVerbose) console.log(`connect #${client.id}`);
-    updateClients();
-    socket.emit('chistory', chatHistory);
-    socket.on('chistory', () => {
-        socket.emit('chistory', chatHistory);
-    });
-    socket.emit('p', pulseTime);
-    socket.on('disconnect', () => {
-        if (beVerbose) console.log(`disconnect #${client.id}`);
-        // disabled for now due to removing wrong/too many clients - relying on "pulseTime" timeout for now:
-        /* clients.splice(clients.indexOf(client), 1);
-        updateClients(); */
-    });
-    socket.on("msg", msg => {
-        if (typeof msg !== 'object' || typeof msg.m !== 'string' || msg.m.length > maxMessageLength) {
-            sayBye(client, 'kick');
-            return;
-        }
-
-        let lastActive = client.lastActive;
-
-        // update lastActive:
-        let now = Date.now();
-        if (now - lastActive < 1000) {
-            autoMod.chaos ++;
-            return;
-        }
-        client.lastActive = now;
-
-        // filtering & moderation:
-        msg.m = msg.m.replace(/</g,"&lt;").replace(/>/g,"&gt;"); // prevent html injection
-        if (autoMod.on) {
-            let stripped = stripToLetters(msg.m);
-            if (autoMod.capCap > 0) if (checkCapPercent(stripped) >= autoMod.capCap) {
-                socket.emit('msg', { t: Date.now(), n: 'Bob', m: 'please don\'t shout' });
-                if (autoMod.kickForCap) sayBye(client, 'kick');
-                return;
-            }
-
-            filterTest(msg.m);
-
-            /* filterTest is called here for updating the autoMod 'chaos level',
-            which controls how autoMod adjusts the chatFilterLevel alongside other restrictions. */
-
-            let chatFilterLevel = client.chatFilterLevel || autoMod.chatFilterLevel;
-            // client.chatFilterLevel: in the future the server could set filter levels per client to offset abuse per user without punishing everybody
-            switch (chatFilterLevel) {
-                case 1:
-                    msg.m = filterText(msg.m);
-                    break;
-                case 2:
-                    msg.m = filterTextIntense(msg.m);
-                    break;
-                case 3:
-                    if (isBad(msg.m, autoMod.chatFilterTolerance)) {
-                        socket.emit('msg', { t: now, n: 'Bob', m: 'please be respectful and take care not to spam' });
-                        sayBye(client, 'kick');
-                        return;
-                    }
-            }
-        }
-        if (msg.m === client.lastMessage && (now - lastActive < 2000)) return;
-
-        // create outgoing message:
-        msg = {
-            t: now,
-            n: client.name,
-            m: msg.m
-        };
-
-        // send:
-        io.emit("msg", msg);
-
-        // chat history:
-        chatHistory.push(msg);
-        if (chatHistory.length > maxChatHistory) chatHistory.splice(0, 1)[0];
-        client.lastMessage = msg.m;
-    });
-});
 
 setInterval(() => {
     clients.forEach(client => {
@@ -290,123 +499,22 @@ setInterval(() => {
     });
 }, maxIdleTime > pulseTime ? pulseTime : maxIdleTime);
 
+
+
+// 2024.12.06 - TO-DO: Drag most of this into the autoMod function.
+
 // autoMod uses a "chaos" integer to dynamically adjust certain restrictions:
-if (autoMod.on) setInterval(() => {
+if (autoModConfig.on) setInterval(() => {
+    if (!autoModConfig.on) return;
     if (maxClients < clientCeiling) maxClients ++;
-    if (!autoMod.on) return;
-    if (clientCeiling !== maxClients) autoMod.chaos += 2;
+    if (!autoModConfig.on) return;
+    if (clientCeiling !== maxClients) autoModConfig.chaos += 2;
     // adjust chatFilterLevel:
-    if (autoMod.chaos >= autoMod.chaosCap.chatFilterLevel) if (autoMod.chatFilterLevel !== 3) autoMod.chatFilterLevel ++;
-    if (autoMod.chaos === 0) if (autoMod.chatFilterLevel > 0) autoMod.chatFilterLevel --;
-    autoMod.kickForCap = autoMod.chaos > autoMod.chaosCap.kickForCap;
-    if (autoMod.chaos === 0) return;
-    autoMod.chaos --;
+    if (autoModConfig.chaos >= autoModConfig.chaosCap.chatFilterLevel) if (autoModConfig.chatFilterLevel !== 3) autoModConfig.chatFilterLevel ++;
+    if (autoModConfig.chaos === 0) if (autoModConfig.chatFilterLevel > 0) autoModConfig.chatFilterLevel --;
+    autoModConfig.kickForCap = autoModConfig.chaos > autoModConfig.chaosCap.kickForCap;
+    if (autoModConfig.chaos === 0) return;
+    autoModConfig.chaos --;
 }, 10000);
-
-const isBad = (input, tolerance) => {
-    if (!tolerance) tolerance = 50;
-    input = input.toLowerCase();
-    let result = false;
-    input.split(' ').forEach(word => { // can still be bypassed with spaces but whatever
-        badWords.forEach(badWord => {
-            if (word.length >= badWord.length && compareStrings(badWord, stripToLetters(word)) >= tolerance) result = true;
-        });
-    });
-    return result;
-}
-
-const filterTest = input => {
-    input = input.toLowerCase();
-    let strippedInput = stripToLetters(input);
-    badWords.forEach(badWord => (strippedInput.includes(badWord) && autoMod.chaos ++));
-}
-
-const filterText = input => {
-    input = input.toLowerCase();
-    input.split(" ").forEach(word => { // can still be bypassed with spaces but whatever
-        badWords.forEach(badWord => {
-            if (word === badWord) {
-                input = input.replace(new RegExp(escapeRegExp(badWord), 'g'), '#'.repeat(badWord.length));
-                autoMod.chaos ++;
-            }
-        });
-    });
-    return input;
-}
-
-const filterTextIntense = input => {
-    input = input.toLowerCase();
-    let strippedInput = stripToLetters(input);
-    badWords.forEach(badWord => {
-        if (strippedInput.includes(badWord)) {
-            input = input.replace(new RegExp(escapeRegExp(badWord), 'g'), '#'.repeat(badWord.length));
-            autoMod.chaos ++;
-        }
-    });
-    return input;
-}
-
-const escapeRegExp = input => {
-    return input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
-}
-
-const stripToLetters = input => {
-    let validChars = 'abcdefghijklmnopqrstuvwyxyz'.split('');
-    input = input.split('');
-    input.forEach((char, index) => {
-        if (!validChars.includes(char.toLowerCase())) delete input[index];
-    });
-    return input.join('');
-}
-
-const compareStrings = (str1, str2) => {
-    let shortest = str2.length >= str1.length ? str1 : str2;
-    let longest = str2.length < str1.length ? str1 : str2;
-    let matches = 0;
-
-    shortest.split('').forEach((item, index) => ((item === longest[index]) && (matches ++)));
-    
-    return matches / shortest.length * 100;
-}
-
-const checkCapPercent = input => {
-    let chars = input.split('');
-    let count = 0;
-    chars.forEach(char => ((char.toUpperCase() === char) && (count ++)));
-    return count / chars.length * 100;
-}
-
-// Set up badText:
-
-const unDiscreetanize = input => {
-    let key = ' abcdefghijklmnopqrstuvwyxz'.split('');
-    input = input.split(' '); // break character
-    let output = input;
-    input.forEach((char, index)=> {
-        output[index] = key[Number(char)] || '?';
-    });
-    return output.join('');
-}
-
-const undiscreetArray = input => {
-    let output = input;
-    input.forEach((item, index) => {
-        output[index] = unDiscreetanize(item);
-    });
-    return output;
-}
-
-let badText;
-
-try {
-	badText = JSON.parse(fs.readFileSync(config.badTextFile, 'utf-8'));
-} catch (err) {
-	console.log(`Error while loading ${config.badTextFile}.`);
-    process.exit();
-	/* fs.writeFileSync(configFile, JSON.stringify(defaultConfig), 'utf-8');
-	badText = JSON.parse(fs.readFileSync(config.badTextFile, 'utf-8')); */
-}
-
-const badWords = undiscreetArray(badText.text);
 
 }
